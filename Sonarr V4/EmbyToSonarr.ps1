@@ -665,9 +665,13 @@ For ($k=0; $k -lt $UsersInfo.Rows.Count; $k++)
                         $time = Get-Date -Format F
                         Log -logString $("[$time] - Sonarr Episode ID Found: "+$Sonarr_EpisodeId)
 
-                        # Update Sonarr monitored status's
-                        # Invoke-RestMethod -Uri $setSonarrMonitor"&apikey="$Sonarr_Api_Key -ContentType 'application/json' -Method Put -Body {'episodeIds':$Sonarr_EpisodeId,'monitored': False}  | Out-Null
-						Invoke-RestMethod -Uri $setSonarrMonitor"&apikey="$Sonarr_Api_Key -Method PUT -ContentType 'application/json' -Body '{"episodeIds": [$Sonarr_EpisodeId],"monitored": false}'
+                        $Data = @{
+							episodeIds = @( $Sonarr_EpisodeId )
+							monitored  = $false
+							} | ConvertTo-Json -Depth 50
+							
+						# Update Sonarr monitored status's
+						Invoke-RestMethod -Uri "$setSonarrMonitor&apikey=$Sonarr_Api_Key" -Method Put -Body $Data -ContentType 'application/json'
                         Log -logString $("[$time] - Sonarr Episode ID: "+$Sonarr_EpisodeId.ToString("#####0").PadRight(6)+" Monitored Status Updated to False.")
                     }
                     elseif ($null -ne $Sonarr_EpisodeId -and $Sonarr_Monitored -eq $false)
