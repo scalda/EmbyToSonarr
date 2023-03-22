@@ -6,3 +6,6 @@ This is not my original work, all attruibution is to go to the original creator 
 i am just here to try and share and bring it upto date and useable for SonarrV4 Beta for the moment
 
 thanks for looking and i hope this is useful to you
+
+Script for V4 Sonarr is not ready for use yet as it has an issue updating the monitored state in sonarr
+
