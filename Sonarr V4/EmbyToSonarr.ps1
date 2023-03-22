@@ -1,13 +1,12 @@
 #Requires -Version 3.0
 <#=============================================================================
-EmbyToSonarr V0.7.4 - 22/03/2023
+EmbyToSonarr V0.6.4 - 17/12/2019
 
 To update the monitored status of Episodes in Sonaar that have been watched in EmbyServer
 Created by PenkethBoy
-Edited By Scalda For Sonarr V4
 =============================================================================#>
 #Script version information
-$version = "v0.7.4"
+$version = "v0.6.4"
 
 # Script Global Variables
 $log = ""
@@ -97,7 +96,7 @@ Function Load_Config ($Cfg)
         # Read variables from _Config file into an array
         $Cfgs_Temp = New-Object PsObject -Property @{Config_Version = $Config_Version ; Log_Path = $Log_Path ; EmbyServerUrl = $EmbyServerUrl ; Emby_User_Name = $Emby_User_Name ; Emby_User_Pwd = $Emby_User_Pwd ; SonarrHost = $SonarrHost ; Sonarr_Api_Key = $Sonarr_Api_Key ; Emby_Watch_Period = $Emby_Watch_Period ; Log_Retention = $Log_Retention ; User_Email = $User_Email ; User_Email_Pwd = $User_Email_Pwd}
         
-        If ($Cfgs_Temp.Config_Version -ne "v0.7.0")
+        If ($Cfgs_Temp.Config_Version -ne "v0.6.0")
         {
             Write-Host "ERROR: You appear to be using an incorrect version of the _Config file."
             Write-Host "Please re-downlaod and update you Config file"
@@ -454,8 +453,8 @@ Import user-defined variables from _Config file
     $User_Email_Pwd = $temp.User_Email_Pwd
 
     # Sonarr Variables
-    $getSonarrSeries    = "$SonarrHost/api/v3/series?&apikey="+$Sonarr_Api_Key
-    $getSonarrEpisodes  = "$SonarrHost/api/v3/episode?SeriesId="
+    $getSonarrSeries    = "$SonarrHost/calendar//api/apikey=="+$Sonarr_Api_Key
+    $getSonarrEpisodes  = "$SonarrHost/api/episode?SeriesId="
 
 <#-----------------------------------------------------------------------------
 Static variables
@@ -659,21 +658,20 @@ For ($k=0; $k -lt $UsersInfo.Rows.Count; $k++)
                     $Sonarr_EpisodeId = $Sonarr_Episodes | Where-Object -FilterScript {$_.SeriesId -eq $Sonarr_SeriesId -and $_.SeasonNumber -eq $EpisodeData.Rows.Item($i).ParentIndexNumber -and $_.EpisodeNumber -eq $EpisodeData.Rows.Item($i).IndexNumber} | Select-Object -ExpandProperty id
                     $Sonarr_Monitored = $Sonarr_Episodes | Where-Object -FilterScript {$_.SeriesId -eq $Sonarr_SeriesId -and $_.SeasonNumber -eq $EpisodeData.Rows.Item($i).ParentIndexNumber -and $_.EpisodeNumber -eq $EpisodeData.Rows.Item($i).IndexNumber} | Select-Object -ExpandProperty monitored
             
-					$Headers = @{
-						'X-Api-Key' = $Sonarr_Api_Key
-						}
-				if (($null -ne $Sonarr_EpisodeId) -and ($Sonarr_Monitored -eq $true)) {
-						Log -LogString "[$(Get-Date -Format F)] - Sonarr Episode ID Found: $Sonarr_EpisodeId"
-						$Data = @{
-							seriesId  = $Sonarr_SeriesId
-							id        = $Sonarr_EpisodeId
-							monitored = $false
-						} | ConvertTo-Json -Depth 50
-
-					# Update Sonarr monitored status's
-					Invoke-RestMethod -Uri "$GetSonarrEpisodes$Sonarr_EpisodeId" -Method Put -Body $Data -Headers $Headers -ContentType 'application/json'
-					Log -LogString "[$(Get-Date -Format F)] - Sonarr Episode ID: $($Sonarr_EpisodeId.ToString() -f "#####0")       Monitored Status Updated to False."
-					}
+                    If (($null -ne $Sonarr_EpisodeId) -and ($Sonarr_Monitored -eq $true))
+                    {
+                        $time = Get-Date -Format F
+                        Log -logString $("[$time] - Sonarr Episode ID Found: "+$Sonarr_EpisodeId)
+                        $data = @{
+                                    SeriesId = $Sonarr_SeriesId
+                                    id = $Sonarr_EpisodeId
+                                    monitored = 'false'
+                                }
+            
+                        # Update Sonarr monitored status's
+                        Invoke-RestMethod -Uri $getSonarrEpisodes$Sonarr_EpisodeId"&apikey="$Sonarr_Api_Key -Method Put -Body (ConvertTo-Json -InputObject $data) | Out-Null
+                        Log -logString $("[$time] - Sonarr Episode ID: "+$Sonarr_EpisodeId.ToString("#####0").PadRight(6)+" Monitored Status Updated to False.")
+                    }
                     elseif ($null -ne $Sonarr_EpisodeId -and $Sonarr_Monitored -eq $false)
                     {
                         $time = Get-Date -Format F
