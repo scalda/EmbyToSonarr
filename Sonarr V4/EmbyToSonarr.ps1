@@ -456,6 +456,7 @@ Import user-defined variables from _Config file
     # Sonarr Variables
     $getSonarrSeries    = "$SonarrHost/api/v3/series?&apikey="+$Sonarr_Api_Key
     $getSonarrEpisodes  = "$SonarrHost/api/v3/episode?SeriesId="
+	$setSonarrMonitor	= "$SonarrHost/api/v3/episode/monitor?&apikey="+$Sonarr_Api_Key
 
 <#-----------------------------------------------------------------------------
 Static variables
@@ -659,21 +660,16 @@ For ($k=0; $k -lt $UsersInfo.Rows.Count; $k++)
                     $Sonarr_EpisodeId = $Sonarr_Episodes | Where-Object -FilterScript {$_.SeriesId -eq $Sonarr_SeriesId -and $_.SeasonNumber -eq $EpisodeData.Rows.Item($i).ParentIndexNumber -and $_.EpisodeNumber -eq $EpisodeData.Rows.Item($i).IndexNumber} | Select-Object -ExpandProperty id
                     $Sonarr_Monitored = $Sonarr_Episodes | Where-Object -FilterScript {$_.SeriesId -eq $Sonarr_SeriesId -and $_.SeasonNumber -eq $EpisodeData.Rows.Item($i).ParentIndexNumber -and $_.EpisodeNumber -eq $EpisodeData.Rows.Item($i).IndexNumber} | Select-Object -ExpandProperty monitored
             
-					$Headers = @{
-						'X-Api-Key' = $Sonarr_Api_Key
-						}
-				if (($null -ne $Sonarr_EpisodeId) -and ($Sonarr_Monitored -eq $true)) {
-						Log -LogString "[$(Get-Date -Format F)] - Sonarr Episode ID Found: $Sonarr_EpisodeId"
-						$Data = @{
-							seriesId  = $Sonarr_SeriesId
-							id        = $Sonarr_EpisodeId
-							monitored = $false
-						} | ConvertTo-Json -Depth 50
+					If (($null -ne $Sonarr_EpisodeId) -and ($Sonarr_Monitored -eq $true))
+                    {
+                        $time = Get-Date -Format F
+                        Log -logString $("[$time] - Sonarr Episode ID Found: "+$Sonarr_EpisodeId)
 
-					# Update Sonarr monitored status's
-					Invoke-RestMethod -Uri "$GetSonarrEpisodes$Sonarr_EpisodeId" -Method Put -Body $Data -Headers $Headers -ContentType 'application/json'
-					Log -LogString "[$(Get-Date -Format F)] - Sonarr Episode ID: $($Sonarr_EpisodeId.ToString() -f "#####0")       Monitored Status Updated to False."
-					}
+                        # Update Sonarr monitored status's
+                        # Invoke-RestMethod -Uri $setSonarrMonitor"&apikey="$Sonarr_Api_Key -ContentType 'application/json' -Method Put -Body {'episodeIds':$Sonarr_EpisodeId,'monitored': False}  | Out-Null
+						Invoke-RestMethod -Uri $setSonarrMonitor"&apikey="$Sonarr_Api_Key -Method PUT -ContentType 'application/json' -Body '{"episodeIds": [$Sonarr_EpisodeId],"monitored": false}'
+                        Log -logString $("[$time] - Sonarr Episode ID: "+$Sonarr_EpisodeId.ToString("#####0").PadRight(6)+" Monitored Status Updated to False.")
+                    }
                     elseif ($null -ne $Sonarr_EpisodeId -and $Sonarr_Monitored -eq $false)
                     {
                         $time = Get-Date -Format F
